@@ -1,0 +1,12 @@
+{
+    "version": 2,
+    "public": true,
+    "builds": [],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
+        }
+    ],
+    "outputDirectory": "dist/wwwroot"
+}
