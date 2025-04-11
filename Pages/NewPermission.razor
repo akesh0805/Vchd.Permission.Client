@@ -1,0 +1,92 @@
+@page "/new-permission"
+@using Vchd.Permission.Client.Components
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+<PageTitle>Ruxsatlar</PageTitle>
+
+@if (!isAuthenticated)
+{
+    <p style="margin: 5px;">Tekshirilmoqda...</p>
+}
+else
+{
+        <MudCard Outlined="true" Class="m-5">
+            <MudCardContent>
+                <MudText Typo="Typo.h6">Yangi Ruxsat Qo'shish</MudText>
+
+                <MudTextField T="string" Label="Kimga ruxsat berasiz?" HelperText="Ism Familiya"
+                    HelperTextOnFocus="true" Variant="Variant.Text" @bind-Value="_model.FullName" />
+
+                <MudTextField T="string" Label="Qanday maqsadda" HelperText="Ixtiyoriy" HelperTextOnFocus="true"
+                    Variant="Variant.Text" @bind-Value="_model.Description" />
+
+                <MudTimePicker Label="Soat nechidan" Editable="true" @bind-Time="_fromTime" />
+
+                <MudTimePicker Label="Soat nechigacha" Editable="true" @bind-Time="_toTime" />
+
+                <MudSelect T="string" Label="Kimdan ruxsat olindi" @bind-Value="_selectedPermissionGiver"
+                    HelperText="Ruxsat beruvchi" HelperTextOnFocus="true">
+                    <MudSelectItem Value="@("Vchd")">Vchd</MudSelectItem>
+                    <MudSelectItem Value="@("VchdG")">VchdG</MudSelectItem>
+                    <MudSelectItem Value="@("VchdZ")">VchdZ</MudSelectItem>
+                </MudSelect>
+            </MudCardContent>
+
+            <MudCardActions>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitAsync">Jo'natish</MudButton>
+            </MudCardActions>
+        </MudCard>
+}
+@code {
+    [Inject] private PermissionService PermissionService { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+
+    private bool isAuthenticated = false;
+    private NewPermissionModel _model = new();
+    private TimeSpan? _fromTime = new TimeSpan(08, 00, 00);
+    private TimeSpan? _toTime = new TimeSpan(17, 00, 00);
+    private string? _selectedPermissionGiver;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        isAuthenticated = true;
+    }
+
+
+    private async Task SubmitAsync()
+    {
+        _model.FromAt = DateTime.Today.Add(_fromTime ?? TimeSpan.Zero);
+        _model.UntillAt = DateTime.Today.Add(_toTime ?? TimeSpan.Zero);
+
+        _model.PermissionGive = _selectedPermissionGiver switch
+        {
+            "Vchd" => EPermissionGive.Vchd,
+            "Vchd Bosh muhandis" => EPermissionGive.VchdG,
+            "Vchd Zam" => EPermissionGive.VchdZam,
+            "Vchd Kadr" => EPermissionGive.VchdKadr,
+            "Vchd Bosh buxgalter" => EPermissionGive.VchdGlBux,
+            "Vchd Bosh Iqtisodchi" => EPermissionGive.VchdGlEko,
+            _ => EPermissionGive.None
+        };
+
+        var success = await PermissionService.SubmitPermissionAsync(_model);
+        if (success)
+        {
+            Console.WriteLine("✅ Ruxsat yuborildi!");
+            await DialogService.ShowAsync<PermissionInfo>("Yangi ruxsat yuborildi");
+        }
+        else
+        {
+            Console.WriteLine("❌ Xatolik yuz berdi.");
+        }
+    }
+}

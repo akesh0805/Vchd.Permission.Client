@@ -1,0 +1,31 @@
+@page "/register"
+@using Vchd.Permission.Client.Models
+@using Vchd.Permission.Client.Services
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<h3>Register</h3>
+
+<EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+    <InputText @bind-Value="registerModel.Username" placeholder="Username" />
+    <InputText @bind-Value="registerModel.Password" type="password" placeholder="Password" />
+    <InputText @bind-Value="registerModel.Role" placeholder="Role (e.g., user)" />
+    <button type="submit">Register</button>
+</EditForm>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <p>@message</p>
+}
+
+@code {
+    private RegisterModel registerModel = new();
+    private string? message;
+
+    private async Task HandleRegister()
+    {
+        var success = await AuthService.RegisterAsync(registerModel);
+        message = success ? "User registered successfully!" : "Registration failed.";
+        if (success) Nav.NavigateTo("/login");
+    }
+}

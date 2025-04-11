@@ -1,0 +1,81 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject PermissionService PermissionService
+@page "/permissions"
+<PageTitle>Ruxsatlar</PageTitle>
+
+@if (!isAuthenticated)
+{
+    <p style="margin: 5px;">Tekshirilmoqda...</p>
+}
+else
+{
+    <MudTable Items="@Elements" Dense="@dense" Hover="@hover" Bordered="@bordered" Striped="@striped" Class="m-2"
+        Outlined="true" Filter="new Func<PermissionModel, bool>(FilterFunc1)" @bind-SelectedItem="selectedItem1">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Ruxsatlar</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString1" Placeholder="Qidirish" Adornment="Adornment.Start"
+                AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Nr</MudTh>
+            <MudTh>Ism Familiya</MudTh>
+            <MudTh>Sabab</MudTh>
+            <MudTh>Nechidan</MudTh>
+            <MudTh>Nechigacha</MudTh>
+            <MudTh>Ruxsat beruvchi</MudTh>
+            <MudTh>Ruxsat holati</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nr">@context.Id</MudTd>
+            <MudTd DataLabel="Ism Familiya">@context.FullName</MudTd>
+            <MudTd DataLabel="Sabab">@context.Description</MudTd>
+            <MudTd DataLabel="Nechidan">@context.FromAt.ToLocalTime().ToString("HH:mm dd.MM.yyyy")</MudTd>
+            <MudTd DataLabel="Nechigacha">@context.UntillAt.ToLocalTime().ToString("HH:mm dd.MM.yyyy")</MudTd>
+            <MudTd DataLabel="Ruxsat beruvchi">@context.PermissionGive.ToString()</MudTd>
+            <MudTd DataLabel="Ruxsat holati">@context.Status.ToString()</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    private bool isAuthenticated = false;
+    private bool dense = true;
+    private bool hover = true;
+    private bool striped = false;
+    private bool bordered = true;
+    private string searchString1 = "";
+    private PermissionModel selectedItem1 = null!;
+    private IEnumerable<PermissionModel> Elements = new List<PermissionModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        isAuthenticated = true;
+        Elements = await PermissionService.GetAllPermissionsAsync() ?? new List<PermissionModel>();
+
+    }
+
+    private bool FilterFunc1(PermissionModel element) => FilterFunc(element, searchString1);
+
+    private bool FilterFunc(PermissionModel element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.FullName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+}
